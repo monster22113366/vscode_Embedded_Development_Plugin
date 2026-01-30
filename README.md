@@ -12,7 +12,7 @@ VS Code 嵌入式 C 开发扩展，专为 ARM Cortex-M 微控制器（STM32 等�
 - **智能配置**：检测到工具后自动配置路径，无需手动设置
 
 ### 🚀 一键开发流程
-- **扫描工程**（F6）：自动识别芯片型号、调试器类型、生成配置
+- **扫描工程**（F6）：自动识别芯片型号、调试器类型、生成配置文件，**更新cmakelists**
 - **编译项目**（F7）：增量编译，实时显示进度
 - **烧录固件**（F8）：一键烧录到芯片
 - **启动调试**（F5）：断点、单步、变量监视、内存查看、反汇编
@@ -27,22 +27,28 @@ VS Code 嵌入式 C 开发扩展，专为 ARM Cortex-M 微控制器（STM32 等�
 
 下载embedded-c-toolchain-1.0.0.vsix，从vscode导入。
 
-### 2. 扫描工具链
+### 2. 安装工具链
 
 打开任意 C 项目后：
 - 点击侧边栏 **"Embedded C Toolchain"** 图标
 - 点击顶部 **扫描按钮**（同步图标）
 - 如果缺少工具，点击 **"安装缺失工具"**
+- 安装完工具链，一定要**重启**！重启vscode才能加载出环境变量
 
-### 3. 扫描工程
+其中，**cmake、ninja、arm-none-eabi-gcc**是编译三件套，**openocd**是烧录工具，**clangd**是语法诊断与代码补全工具。都是开源的工具。
 
-```
-按 F6 或命令面板输入 "Scan Project"
-选择芯片型号（如 STM32F103C8）
-选择调试器（OpenOCD / J-Link / ST-Link）
-```
+### 3. 生成并扫描工程(第一次打开工程，以及写了新的c/cpp文件，h文件时，都要扫描一遍)
 
-完成后自动生成 CMakeLists.txt、Makefile、launch.json 等配置。
+- stm32cubemx生成cubeide工程(也可以生成cmake工程，不过要6.14.0及更旧的版本，太新的版本的cubemx生成的cmakelists有问题。)
+- vscode打开工程的根目录
+- 按 F6 或命令面板输入 "Scan Project"
+- 选择芯片型号（如 STM32F103C8）
+- 选择调试器（OpenOCD / J-Link / ST-Link）
+
+
+完成后自动生成 **或** 更新CMakeLists.txt、生成launch.json、.clang-format、.clangd 等配置文件。
+
+一定要扫描工程！扫描工程插件才能知道工程的信息，才能提供语法诊断，能正确调用编译烧录工具，能提供烧录脚本，
 
 ### 4. 编译 → 烧录 → 调试
 
