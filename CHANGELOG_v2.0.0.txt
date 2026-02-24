@@ -1,0 +1,80 @@
+================================================================================
+  embedded-c-toolchain 版本变更记录
+  v2.0.0 相较 v1.0.0 的功能优化与 Bug 修复
+  更新日期：2026-02-24
+================================================================================
+
+------------------------------------------------------------------------
+【新功能】
+------------------------------------------------------------------------
+
+1. Rebuild（清理重新编译）
+   - 新增 "清理并重新编译" 命令，删除 build 目录后从零开始完整构建。
+   - 状态栏和侧边栏均新增对应按钮入口。
+   - 适用场景：编译缓存污染、切换芯片型号、切换 Debug/Release 配置后。
+   涉及文件：src/extension.ts, src/ui/StatusBarManager.ts,
+             src/views/SidebarProvider.ts, src/commands/DebugCommand.ts,
+             package.json
+
+2. 格式化功能独立（手动触发）
+   - 原扫描流程中自动执行的 clang-format 格式化，现已拆分为独立命令。
+   - 用户可通过命令面板或侧边栏按钮手动触发，避免扫描时不必要的格式改动。
+   涉及文件：src/extension.ts, src/commands/ScanCommand.ts,
+             src/ui/StatusBarManager.ts, src/views/SidebarProvider.ts,
+             package.json
+
+------------------------------------------------------------------------
+【功能优化】
+------------------------------------------------------------------------
+
+3. 重复扫描优化：已扫描过的工程仅更新 CMakeLists.txt
+   - 检测到 .vscode/c_cpp_properties.json 等配置文件已存在时，跳过全量
+     配置生成，仅刷新 CMakeLists.txt，大幅缩短二次扫描耗时。
+   涉及文件：src/commands/ScanCommand.ts
+
+------------------------------------------------------------------------
+【Bug 修复】
+------------------------------------------------------------------------
+
+4. 修复：Keil MDK 工程扫描后出现大量报错
+   问题：扫描 Keil MDK（.uvprojx）工程时，源文件路径、头文件目录、
+         预处理宏均无法正确解析，导致 clangd 报大量找不到文件的错误。
+   修复：
+   - 新增 MdkProjectParser（XML 解析 .uvprojx），精确提取：
+       · 源文件列表（.c/.cpp/.s/.S，自动过滤 .h/.lib）
+       · 包含目录（includePaths）
+       · 预处理宏定义（defines）
+       · 芯片型号（<Device> 标签）
+       · CMSIS-DSP 库引用检测（arm_cortexM*_math.lib）
+   - SourceTreeAnalyzer 集成 MDK 解析结果，优先使用工程文件中明确列出
+     的文件，而非目录递归扫描。
+   - CmakeListsGenerator 补全 MDK 工程专属的 CMake 生成逻辑。
+   - clangd 配置生成同步更新，确保头文件路径和宏与 MDK 工程一致。
+   涉及文件：src/scanner/MdkProjectParser.ts（新增）,
+             src/scanner/SourceTreeAnalyzer.ts,
+             src/scanner/index.ts,
+             src/generator/CmakeListsGenerator.ts,
+             src/generator/ClangdGenerator.ts,
+             src/commands/ScanCommand.ts
+
+5. 修复：兼容 STM32CubeMX 较新版本生成的 CMakeLists.txt
+   问题：CubeMX 新版本生成的 CMakeLists.txt 中，target_include_directories
+         的 PRIVATE 行末尾带有 # 注释，导致后续追加的头文件路径被 CMake
+         解析为注释内容，编译时找不到头文件。
+   修复：
+   - CmakeListsUpdater 新增 fixStCubeMxBugs() 方法，原地修复该文件：
+       · 正则匹配 target_include_directories(...) 块中被 # 意外注释掉的
+         路径 token，将其移至正确的独立行。
+   - CompileCommand 和 ScanCommand 在处理 CubeMX 工程时自动调用修复。
+   涉及文件：src/generator/CmakeListsUpdater.ts,
+             src/commands/CompileCommand.ts,
+             src/commands/ScanCommand.ts
+
+------------------------------------------------------------------------
+【变更统计】
+------------------------------------------------------------------------
+  新增文件：1（src/scanner/MdkProjectParser.ts）
+  修改文件：12
+  净增行数：~1,069 行（+1,140 / -71）
+
+================================================================================
